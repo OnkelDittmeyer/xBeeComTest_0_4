@@ -5,9 +5,8 @@
 #include <SoftwareSerial.h>
 
 
-
 SoftwareSerial XBee(2, 3); // Arduino RX, TX (XBee Dout, Din)
-DroneMotor motorOne(13,12); //creates first motor
+DroneMotor motorOne(13,12); //creates first motor, attached to pin 13 & 12
 boolean motorOneSwitch = false;
 
 
@@ -16,8 +15,6 @@ void setup()
   XBee.begin(9600);
   Serial.begin(9600);
   Serial.println("Start programm");
-  //printMenu(); // Print a helpful menu:
-
 }
 
 void loop()
@@ -78,31 +75,5 @@ int ASCIItoInt(char c)
     return -1;
 }
 
-// printMenu
-// A big ol' string of Serial prints that print a usage menu over
-// to the other XBee.
-void printMenu()
-{
-  // Everything is "F()"'d -- which stores the strings in flash.
-  // That'll free up SRAM for more importanat stuff.
-  XBee.println();
-  XBee.println(F("Arduino XBee Remote Control!"));
-  XBee.println(F("============================"));
-  XBee.println(F("Usage: "));
-  XBee.println(F("w#nnn - analog WRITE pin # to nnn"));
-  XBee.println(F("  e.g. w6088 - write pin 6 to 88"));
-  XBee.println(F("d#v   - digital WRITE pin # to v"));
-  XBee.println(F("  e.g. ddh - Write pin 13 High"));
-  XBee.println(F("r#    - digital READ digital pin #"));
-  XBee.println(F("  e.g. r3 - Digital read pin 3"));
-  XBee.println(F("a#    - analog READ analog pin #"));
-  XBee.println(F("  e.g. a0 - Read analog pin 0"));
-  XBee.println();
-  XBee.println(F("- Use hex values for pins 10-13"));
-  XBee.println(F("- Upper or lowercase works"));
-  XBee.println(F("- Use 0, l, or L to write LOW"));
-  XBee.println(F("- Use 1, h, or H to write HIGH"));
-  XBee.println(F("============================"));
-  XBee.println();
-}
+
 
