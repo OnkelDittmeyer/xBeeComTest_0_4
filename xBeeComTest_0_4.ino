@@ -4,36 +4,37 @@
 // SoftwareSerial is used to communicate with the XBee
 #include <SoftwareSerial.h>
 
-
-SoftwareSerial XBee(2, 3); // Arduino RX, TX (XBee Dout, Din)
+//receiver
+SoftwareSerial receiveData(2, 3); // Arduino RX, TX (XBee Dout, Din)
+Serial sendingData;
 DroneMotor motorOne(13,12); //creates first motor, attached to pin 13 & 12
 boolean motorOneSwitch = false;
 
 
 void setup()
 {
-  XBee.begin(9600);
-  Serial.begin(9600);
-  Serial.println("Start programm");
+  receiveData.begin(9600);
+  sendingData.begin(9600);
+  sendingData.println("Start programm");
 }
 
 void loop()
 {
 
-  if (XBee.available())
+  if (receiveData.available())
   {
-    char c = XBee.read();
+    char c = receiveData.read();
     switch (c)
     {
 
       case '0':
-        XBee.print("Activate Flipper One");
+        receiveData.print("Activate Flipper One");
         motorOneSwitch = true;
         motorOne.motorTest();        
         break;
 
       case '1':
-        XBee.print("Turn motor1 right");
+        receiveData.print("Turn motor");
         break;
         
      default:
@@ -42,6 +43,7 @@ void loop()
   }
   //motorOne.flapping(true);
 
+  //send data to serial
   
 }
 
