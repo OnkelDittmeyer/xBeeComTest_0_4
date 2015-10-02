@@ -21,15 +21,16 @@ int dataPin = 11;
 
 //motor setup
 //motor class going to be changed to single number setup, 16bit encoded for switchRegister/hbridge hardware
-DroneMotor motorOne(13,12); //creates first motor, attached to pin 13 & 12
+DroneMotor motorOne(); //creates first motor, attached to pin 13 & 12
 
-boolean motorOneSwitch = false;
 
 
 void setup()
 {
-
-  
+  pinMode(latchPin, OUTPUT);
+  pinMode(clockPin, OUTPUT);
+  pinMode(dataPin, OUTPUT);
+ 
   receiveData.begin(9600);
   sendingData.begin(9600);
   sendingData.println("Start programm");
@@ -37,12 +38,17 @@ void setup()
 
 void loop()
 {
-
+  //update all motor states
+  for(int i=0; i<Motors.length; i++){
+    Motors[i].update();
+  }
+  
+  
   //structure
   //   letters: A,B,C,D,E,F switch specific motor boolean to true
   //  motors remain active as long as set to false again
   //   letters: a,b,c,d,e,f switch specific motor to boolean false
-  
+
   if (receiveData.available())
   {
     char c = receiveData.read();
@@ -50,23 +56,29 @@ void loop()
     {
 
       case 'A':
-        motorOneSwitch = true;
+         motorOne.onOff = true;
         break;
 
       case 'a':
-        motorOneSwitch = false;
+         motorOne.onOff = false;
         break;
-        
-     default:
-       //all off
-       motorOneSwitch = false;
+
+      default:
+        //all off
+        motorOne.onOff = false;
     }
   }
+
+  digitalWrite(latchPin, LOW);
+  shiftOut(dataPin, clockPin, MSBFIRST, shiftRegNumber());
+  digitalWrite(latchPin, HIGH);
   
-  motorOne.flapping(motorOneSwitch);
+
 
   //send data to serial
   //check all sensors for data
+
+
 }
 
 
@@ -99,5 +111,33 @@ int ASCIItoInt(char c)
     return -1;
 }
 
+
+//shiftReg functions
+
+long shiftRegNumber() {
+  long regNumber = 0;
+
+  for (int i = 0; i < Motors.length; i++) {
+    if (Motors[i].onOff) {
+      switch (Motors[i].state) {
+        case 0:
+          //turns left
+          regNumber += (i + 1) * 2;
+          break;
+        case 1:
+          //is off
+          break;
+        case 2:
+          //turns right
+          regNumber += ((i + 1) * 2) + 1;
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
+  return regNumber;
+}
 
 
