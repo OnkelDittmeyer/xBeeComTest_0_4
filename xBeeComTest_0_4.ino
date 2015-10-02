@@ -4,15 +4,32 @@
 // SoftwareSerial is used to communicate with the XBee
 #include <SoftwareSerial.h>
 
-//receiver
+
+
+//receivingSerial
 SoftwareSerial receiveData(2, 3); // Arduino RX, TX (XBee Dout, Din)
+//sendingSerial
 Serial sendingData;
+
+//shiftReg setup
+//Pin connected to ST_CP of 74HC595
+int latchPin = 8;
+//Pin connected to SH_CP of 74HC595
+int clockPin = 12;
+////Pin connected to DS of 74HC595
+int dataPin = 11;
+
+//motor setup
+//motor class going to be changed to single number setup, 16bit encoded for switchRegister/hbridge hardware
 DroneMotor motorOne(13,12); //creates first motor, attached to pin 13 & 12
+
 boolean motorOneSwitch = false;
 
 
 void setup()
 {
+
+  
   receiveData.begin(9600);
   sendingData.begin(9600);
   sendingData.println("Start programm");
@@ -21,30 +38,35 @@ void setup()
 void loop()
 {
 
+  //structure
+  //   letters: A,B,C,D,E,F switch specific motor boolean to true
+  //  motors remain active as long as set to false again
+  //   letters: a,b,c,d,e,f switch specific motor to boolean false
+  
   if (receiveData.available())
   {
     char c = receiveData.read();
     switch (c)
     {
 
-      case '0':
-        receiveData.print("Activate Flipper One");
+      case 'A':
         motorOneSwitch = true;
-        motorOne.motorTest();        
         break;
 
-      case '1':
-        receiveData.print("Turn motor");
+      case 'a':
+        motorOneSwitch = false;
         break;
         
      default:
+       //all off
        motorOneSwitch = false;
     }
   }
-  //motorOne.flapping(true);
+  
+  motorOne.flapping(motorOneSwitch);
 
   //send data to serial
-  
+  //check all sensors for data
 }
 
 
