@@ -4,12 +4,13 @@
 // SoftwareSerial is used to communicate with the XBee
 #include <SoftwareSerial.h>
 
-
+#define motorNum 6
 
 //receivingSerial
 SoftwareSerial receiveData(2, 3); // Arduino RX, TX (XBee Dout, Din)
 //sendingSerial
-Serial sendingData;
+SoftwareSerial sendingData(4, 5);
+
 
 //shiftReg setup
 //Pin connected to ST_CP of 74HC595
@@ -20,13 +21,13 @@ int clockPin = 12;
 int dataPin = 11;
 
 //motor setup
-//motor class going to be changed to single number setup, 16bit encoded for switchRegister/hbridge hardware
-DroneMotor motorOne(); //creates first motor, attached to pin 13 & 12
-
+DroneMotor motors[motorNum];
 
 
 void setup()
 {
+  createMotors(motorNum, motors);
+  
   pinMode(latchPin, OUTPUT);
   pinMode(clockPin, OUTPUT);
   pinMode(dataPin, OUTPUT);
@@ -39,8 +40,8 @@ void setup()
 void loop()
 {
   //update all motor states
-  for(int i=0; i<Motors.length; i++){
-    Motors[i].update();
+  for(int i=0; i<motorNum; i++){
+    motors[i].update();
   }
   
   
@@ -56,16 +57,16 @@ void loop()
     {
 
       case 'A':
-         motorOne.onOff = true;
+         motors[0].onOff = true;
         break;
 
       case 'a':
-         motorOne.onOff = false;
+         motors[0].onOff = false;
         break;
 
       default:
         //all off
-        motorOne.onOff = false;
+        motors[0].onOff = false;
     }
   }
 
@@ -117,9 +118,9 @@ int ASCIItoInt(char c)
 long shiftRegNumber() {
   long regNumber = 0;
 
-  for (int i = 0; i < Motors.length; i++) {
-    if (Motors[i].onOff) {
-      switch (Motors[i].state) {
+  for (int i = 0; i < motorNum; i++) {
+    if (motors[i].onOff) {
+      switch (motors[i].state) {
         case 0:
           //turns left
           regNumber += (i + 1) * 2;
@@ -140,4 +141,11 @@ long shiftRegNumber() {
   return regNumber;
 }
 
+void createMotors(int num, DroneMotor motors[]){
+  
+  for(int i=0; i<num; i++){
+    DroneMotor newMotor = DroneMotor();
+    motors[i] = newMotor;
+  }
+}
 
