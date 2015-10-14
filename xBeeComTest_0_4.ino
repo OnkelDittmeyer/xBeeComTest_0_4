@@ -1,15 +1,16 @@
 //drone motor library
 #include <DroneMotor.h>
 
+#include <math.h>
+
 // SoftwareSerial is used to communicate with the XBee
 #include <SoftwareSerial.h>
 
-#define motorNum 6
+
 
 //receivingSerial
-SoftwareSerial receiveData(2, 3); // Arduino RX, TX (XBee Dout, Din)
+SoftwareSerial XBee(2, 3); // Arduino RX, TX (XBee Dout, Din)
 //sendingSerial
-SoftwareSerial sendingData(4, 5);
 
 
 //shiftReg setup
@@ -20,132 +21,161 @@ int clockPin = 12;
 ////Pin connected to DS of 74HC595
 int dataPin = 11;
 
+
+//number of motors active
+#define motorNum 6
 //motor setup
 DroneMotor motors[motorNum];
+//numbers send to shiftReg 1&2
+long regNumbers[2];
+
+//sensorTriggerPin
+#define sensorNum 6
+int sensorTriggerPin = 6;
+int sensorValues[sensorNum - 1];
 
 
 void setup()
 {
-  createMotors(motorNum, motors);
-  
+  pinMode(sensorTriggerPin, OUTPUT);
+  pinMode(13,OUTPUT);
+
+  createMotors();
+
   pinMode(latchPin, OUTPUT);
   pinMode(clockPin, OUTPUT);
   pinMode(dataPin, OUTPUT);
- 
-  receiveData.begin(9600);
-  sendingData.begin(9600);
-  sendingData.println("Start programm");
+
+  XBee.begin(9600);
+  Serial.begin(9600);
+  XBee.println("Start programm");
+  checkMotors();
 }
 
 void loop()
 {
-  //update all motor states
-  for(int i=0; i<motorNum; i++){
+  //receiveData.println("Online");
+  
+  //update all motor animation states
+  for (int i = 0; i < motorNum; i++) {
     motors[i].update();
   }
-  
-  
+
+
   //structure
   //   letters: A,B,C,D,E,F switch specific motor boolean to true
   //  motors remain active as long as set to false again
   //   letters: a,b,c,d,e,f switch specific motor to boolean false
 
-  if (receiveData.available())
+  if (XBee.available())
   {
-    char c = receiveData.read();
+    char c = XBee.read();
     switch (c)
     {
 
       case 'A':
-         motors[0].onOff = true;
+        motors[0].onOff = true;
+        XBee.println("got A");
+        Serial.println("got A");
+        digitalWrite(13, HIGH);
+        
         break;
 
       case 'a':
-         motors[0].onOff = false;
+        motors[0].onOff = false;
+        XBee.println("got a");
+        Serial.println("got a");
+        digitalWrite(13, LOW);
         break;
 
+
+      case '0':
+        //send Sensor Data
+        XBee.println(getSensorArray());
+        
+        
       default:
         //all off
         motors[0].onOff = false;
     }
   }
 
-  digitalWrite(latchPin, LOW);
-  shiftOut(dataPin, clockPin, MSBFIRST, shiftRegNumber());
-  digitalWrite(latchPin, HIGH);
-  
 
+
+
+  createShiftRegNumber();
+  writeMotors(regNumbers[0], regNumbers[1]);
 
   //send data to serial
   //check all sensors for data
-
-
 }
 
 
 
-// ASCIItoHL
-// Helper function to turn an ASCII value into either HIGH or LOW
-int ASCIItoHL(char c)
-{
-  // If received 0, byte value 0, L, or l: return LOW
-  // If received 1, byte value 1, H, or h: return HIGH
-  if ((c == '0') || (c == 0) || (c == 'L') || (c == 'l'))
-    return LOW;
-  else if ((c == '1') || (c == 1) || (c == 'H') || (c == 'h'))
-    return HIGH;
-  else
-    return -1;
-}
 
-// ASCIItoInt
-// Helper function to turn an ASCII hex value into a 0-15 byte val
-int ASCIItoInt(char c)
-{
-  if ((c >= '0') && (c <= '9'))
-    return c - 0x30; // Minus 0x30
-  else if ((c >= 'A') && (c <= 'F'))
-    return c - 0x37; // Minus 0x41 plus 0x0A
-  else if ((c >= 'a') && (c <= 'f'))
-    return c - 0x57; // Minus 0x61 plus 0x0A
-  else
-    return -1;
-}
 
 
 //shiftReg functions
-
-long shiftRegNumber() {
-  long regNumber = 0;
-
+void createShiftRegNumber() {
   for (int i = 0; i < motorNum; i++) {
     if (motors[i].onOff) {
       switch (motors[i].state) {
         case 0:
           //turns left
-          regNumber += (i + 1) * 2;
+          if (i < 5) {
+            regNumbers[0] += motors[i].left;
+          } else {
+            regNumbers[1] += motors[i].left;
+          };
           break;
         case 1:
           //is off
           break;
         case 2:
           //turns right
-          regNumber += ((i + 1) * 2) + 1;
+          if (i < 5) {
+            regNumbers[0] += motors[i].right;
+          } else {
+            regNumbers[1] += motors[i].right;
+          };
           break;
         default:
           break;
       }
     }
   }
-
-  return regNumber;
 }
 
-void createMotors(int num, DroneMotor motors[]){
-  
-  for(int i=0; i<num; i++){
+void createMotors() {
+  int n = 1;
+
+  for (int i = 1; i <= motorNum; i++) {
     DroneMotor newMotor = DroneMotor();
-    motors[i] = newMotor;
+    newMotor.setRegNum(round(pow(2, n)), round(pow(2, (n + 1))));
+    motors[i - 1] = newMotor;
+    if (n < 7) {
+      n = n + 2;
+    } else {
+      n = 1;
+    }
+
+  }
+
+}
+
+void checkMotors() {
+
+  for (int i = 0; i < motorNum; i++) {
+    Serial.print("Motor ");
+    Serial.print(i);
+    Serial.print(": ");
+    Serial.print(motors[i].onOff);
+    Serial.print(" , " );
+    Serial.print(motors[i].left);
+    Serial.print(" , " );
+    Serial.println(motors[i].right);
+
+
+
   }
 }
-
