@@ -68,6 +68,7 @@ void loop()
   //   letters: a,b,c,d,e,f switch specific motor to off
   //  '0' pulls sensor data as string csv
   // sensor data returned is an array average of 50 for each sensor
+  // data pull needs about  500ms since the sensors need to trigger after each other to avoid interferences
 
   if (XBee.available())
   {
