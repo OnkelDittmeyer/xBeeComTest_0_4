@@ -6,6 +6,8 @@
 // SoftwareSerial is used to communicate with the XBee
 #include <SoftwareSerial.h>
 
+#define sensorNum 6
+#define motorNum 6
 
 
 //receivingSerial
@@ -21,19 +23,17 @@ int clockPin = 12;
 ////Pin connected to DS of 74HC595
 int dataPin = 11;
 
-
-//number of motors active
-#define motorNum 6
 //motor setup
 DroneMotor motors[motorNum];
 //numbers send to shiftReg 1&2
 long regNumbers[2];
 
 //sensorTriggerPin
-#define sensorNum 6
 int sensorTriggerPin = 6;
 int sensorValues[sensorNum - 1];
 
+
+int sampleSize = 25;
 
 void setup()
 {
@@ -63,9 +63,11 @@ void loop()
 
 
   //structure
-  //   letters: A,B,C,D,E,F switch specific motor boolean to true
+  //   letters: A,B,C,D,E,F switch specific motor to on
   //  motors remain active as long as set to false again
-  //   letters: a,b,c,d,e,f switch specific motor to boolean false
+  //   letters: a,b,c,d,e,f switch specific motor to off
+  //  '0' pulls sensor data as string csv
+  // sensor data returned is an array average of 50 for each sensor
 
   if (XBee.available())
   {
@@ -91,7 +93,7 @@ void loop()
 
       case '0':
         //send Sensor Data
-        XBee.println(getSensorArray());
+        XBee.println(sensorAverage());
         
         
       default:
