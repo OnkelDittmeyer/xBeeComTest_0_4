@@ -27,6 +27,7 @@ int dataPin = 11;
 DroneMotor motors[motorNum];
 //numbers send to shiftReg 1&2
 long regNumbers[2];
+int motorRegRef[12] = {1, 2, 8, 4, 16, 32, 128, 64, 1, 2, 8, 4};
 
 //sensorTriggerPin
 int sensorTriggerPin = 6;
@@ -38,7 +39,7 @@ int sampleSize = 25;
 void setup()
 {
   pinMode(sensorTriggerPin, OUTPUT);
-  pinMode(13,OUTPUT);
+  pinMode(13, OUTPUT);
 
   createMotors();
 
@@ -49,13 +50,16 @@ void setup()
   XBee.begin(9600);
   Serial.begin(9600);
   XBee.println("Start programm");
-  checkMotors();
+  //checkMotors();
+
+  blinkAll_2Bytes(3, 500);
+
 }
 
 void loop()
 {
   //receiveData.println("Online");
-  
+
   //update all motor animation states
   for (int i = 0; i < motorNum; i++) {
     motors[i].update();
@@ -67,7 +71,8 @@ void loop()
   //  motors remain active as long as set to false again
   //   letters: a,b,c,d,e,f switch specific motor to off
   //  '0' pulls sensor data as string csv
-  // sensor data returned is an array average of 50 for each sensor
+  //  '1' turns all motors off
+  // sensor data returned is an array[50] average for each sensor
   // data pull needs about  500ms since the sensors need to trigger after each other to avoid interferences
 
   if (XBee.available())
@@ -78,28 +83,59 @@ void loop()
 
       case 'A':
         motors[0].onOff = true;
-        XBee.println("got A");
-        Serial.println("got A");
-        digitalWrite(13, HIGH);
-        
+        //XBee.println("got A");
+        XBee.println(motors[0].onOff);
         break;
-
       case 'a':
         motors[0].onOff = false;
-        XBee.println("got a");
-        Serial.println("got a");
-        digitalWrite(13, LOW);
+        //XBee.println("got a");
+        XBee.println(motors[0].onOff);
         break;
-
+      case 'B':
+        motors[1].onOff = true;
+        break;
+      case 'b':
+        motors[1].onOff = false;
+        break;
+      case 'C':
+        motors[2].onOff = true;
+        break;
+      case 'c':
+        motors[2].onOff = false;
+        break;
+      case 'D':
+        motors[3].onOff = true;
+        break;
+      case 'd':
+        motors[3].onOff = false;
+        break;
+      case 'E':
+        motors[4].onOff = true;
+        break;
+      case 'e':
+        motors[4].onOff = false;
+        break;  
+      case 'F':
+        motors[5].onOff = true;
+        break;
+      case 'f':
+        motors[5].onOff = false;
+        break;        
 
       case '0':
         //send Sensor Data
-        XBee.println(sensorAverage());
-        
-        
+        XBee.println("Sensor Data");
+        //XBee.println(sensorAverage());
+        break;
+      
+      case '1':
+        //allOff
+        allOff();
+        break;
+
       default:
         //all off
-        motors[0].onOff = false;
+        allOff();
     }
   }
 
@@ -107,7 +143,7 @@ void loop()
 
 
   createShiftRegNumber();
-  writeMotors(regNumbers[0], regNumbers[1]);
+  writeMotors(regNumbers[1], regNumbers[0]);
 
   //send data to serial
   //check all sensors for data
@@ -120,12 +156,24 @@ void loop()
 
 //shiftReg functions
 void createShiftRegNumber() {
+  regNumbers[0] = 0;
+  regNumbers[1] = 0;
+
   for (int i = 0; i < motorNum; i++) {
+    //Serial.print("OnOff: ");
+    //Serial.println(motors[i].onOff);
+
     if (motors[i].onOff) {
+      Serial.print("State: ");
+      Serial.println(motors[i].state);
+      Serial.print("Left: ");
+      Serial.println(motors[i].left);
+      Serial.print("Right: ");
+      Serial.println(motors[i].right);
       switch (motors[i].state) {
         case 0:
           //turns left
-          if (i < 5) {
+          if (i <= 3) {
             regNumbers[0] += motors[i].left;
           } else {
             regNumbers[1] += motors[i].left;
@@ -136,7 +184,7 @@ void createShiftRegNumber() {
           break;
         case 2:
           //turns right
-          if (i < 5) {
+          if (i <=3) {
             regNumbers[0] += motors[i].right;
           } else {
             regNumbers[1] += motors[i].right;
@@ -145,23 +193,24 @@ void createShiftRegNumber() {
         default:
           break;
       }
+      Serial.print("Send Reg numbers: ");
+      Serial.print(regNumbers[0]);
+      Serial.print(" & ");
+      Serial.println(regNumbers[1]);
+      Serial.println();
     }
   }
+
 }
 
 void createMotors() {
-  int n = 1;
+  int n = 0;
 
-  for (int i = 1; i <= motorNum; i++) {
+  for (int i = 0; i < motorNum; i++) {
     DroneMotor newMotor = DroneMotor();
-    newMotor.setRegNum(round(pow(2, n)), round(pow(2, (n + 1))));
-    motors[i - 1] = newMotor;
-    if (n < 7) {
-      n = n + 2;
-    } else {
-      n = 1;
-    }
-
+    newMotor.setRegNum(motorRegRef[n], motorRegRef[n + 1]);
+    motors[i] = newMotor;
+    n += 2;
   }
 
 }
@@ -177,8 +226,12 @@ void checkMotors() {
     Serial.print(motors[i].left);
     Serial.print(" , " );
     Serial.println(motors[i].right);
-
-
-
   }
+}
+
+void allOff(){
+  for (int i = 0; i < motorNum; i++) {
+      motors[i].onOff = false;
+  }
+
 }
