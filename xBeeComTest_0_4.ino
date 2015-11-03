@@ -31,7 +31,7 @@ int motorRegRef[12] = {1, 2, 8, 4, 16, 32, 128, 64, 1, 2, 8, 4};
 
 //sensorTriggerPin
 int sensorTriggerPin = 6;
-int sensorValues[sensorNum - 1];
+int sensorValues[sensorNum];
 
 
 int sampleSize = 25;
@@ -73,7 +73,7 @@ void loop()
   //  '0' pulls sensor data as string csv
   //  '1' turns all motors off
   // sensor data returned is an array[50] average for each sensor
-  // data pull needs about  500ms since the sensors need to trigger after each other to avoid interferences
+  // data pull needs about  600ms since the sensors need to trigger after each other to avoid interferences
 
   if (XBee.available())
   {
@@ -124,8 +124,11 @@ void loop()
 
       case '0':
         //send Sensor Data
-        XBee.println("Sensor Data");
-        //XBee.println(sensorAverage());
+        //XBee.println("Sensor Data");
+        startSensor();
+        readSensor();
+        delay(600);
+        XBee.println(sensorIntoString());
         break;
       
       case '1':
