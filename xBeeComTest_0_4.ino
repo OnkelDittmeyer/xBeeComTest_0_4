@@ -33,6 +33,8 @@ int motorRegRef[12] = {1, 2, 8, 4, 16, 32, 128, 64, 1, 2, 8, 4};
 int sensorTriggerPin = 6;
 int sensorValues[sensorNum];
 
+long time;
+long lastTrigger;
 
 int sampleSize = 25;
 
@@ -84,12 +86,12 @@ void loop()
       case 'A':
         motors[0].onOff = true;
         //XBee.println("got A");
-        XBee.println(motors[0].onOff);
+        //XBee.println(motors[0].onOff);
         break;
       case 'a':
         motors[0].onOff = false;
         //XBee.println("got a");
-        XBee.println(motors[0].onOff);
+        //XBee.println(motors[0].onOff);
         break;
       case 'B':
         motors[1].onOff = true;
@@ -124,11 +126,21 @@ void loop()
 
       case '0':
         //send Sensor Data
+        //   sensors can only trigger every 600ms since they have to finish their trigger cycle
+        //  to avoid interferences
         //XBee.println("Sensor Data");
-        startSensor();
-        readSensor();
-        delay(600);
-        XBee.println(sensorIntoString());
+        time = millis();
+        if(time - lastTrigger > 600){
+                  startSensor();
+                  readSensor();
+                  //delay(600);
+                  lastTrigger = millis();
+                  XBee.println(sensorIntoString());  
+        }else{
+                  XBee.println("sensors not ready yet");  
+
+        }
+
         break;
       
       case '1':
